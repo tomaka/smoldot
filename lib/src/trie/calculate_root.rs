@@ -83,9 +83,12 @@ pub struct CalculationCache {
 }
 
 /// Custom data stored in each node in [`CalculationCache::structure`].
-#[derive(Default, Clone)]
-struct CacheEntry {
-    merkle_value: Option<trie_node::MerkleValueOutput>,
+#[derive(Clone)]
+enum CacheEntry {
+    /// Node value of this entry is known.
+    KnownNodeValue(trie_node::MerkleValueOutput),
+    /// Node value of this entry hasn't been calculated yet or has been invalidated.
+    UnknownNodeValue,
 }
 
 impl CalculationCache {
@@ -114,14 +117,15 @@ impl CalculationCache {
             (trie_structure::Entry::Vacant(entry), true) => {
                 match entry.insert_storage_value() {
                     trie_structure::PrepareInsert::One(insert) => {
-                        let inserted = insert.insert(Default::default());
+                        let inserted = insert.insert(CacheEntry::UnknownNodeValue);
                         match inserted.into_parent() {
                             Some(p) => p,
                             None => return,
                         }
                     }
                     trie_structure::PrepareInsert::Two(insert) => {
-                        let inserted = insert.insert(Default::default(), Default::default());
+                        let inserted = insert
+                            .insert(CacheEntry::UnknownNodeValue, CacheEntry::UnknownNodeValue);
 
                         // We additionally have to invalidate the Merkle value of the children of
                         // the newly-inserted branch node.
@@ -130,7 +134,7 @@ impl CalculationCache {
                             if let Some(mut child) =
                                 inserted_branch.child(Nibble::try_from(idx).unwrap())
                             {
-                                child.user_data().merkle_value = None;
+                                *child.user_data() = CacheEntry::UnknownNodeValue;
                             }
                         }
 
@@ -167,15 +171,15 @@ impl CalculationCache {
         };
 
         // We invalidate the Merkle value of `node_to_invalidate` and all its ancestors.
-        node_to_invalidate.user_data().merkle_value = None;
+        *node_to_invalidate.user_data() = CacheEntry::UnknownNodeValue;
         let mut parent = node_to_invalidate.into_parent();
         while let Some(mut node) = parent.take() {
             // If the node has already had its Merkle value invalidated, then
             // we can stop there.
-            if node.user_data().merkle_value.is_none() {
+            if matches!(node.user_data(), CacheEntry::UnknownNodeValue) {
                 break;
             }
-            node.user_data().merkle_value = None;
+            *node.user_data() = CacheEntry::UnknownNodeValue;
             parent = node.into_parent();
         }
     }
@@ -189,14 +193,14 @@ impl CalculationCache {
         };
 
         if let Some(mut node) = structure.remove_prefix(bytes_to_nibbles(prefix.iter().cloned())) {
-            node.user_data().merkle_value = None;
+            *node.user_data() = CacheEntry::UnknownNodeValue;
             let mut parent = node.into_parent();
             while let Some(mut p) = parent.take() {
-                p.user_data().merkle_value = None;
+                *p.user_data() = CacheEntry::UnknownNodeValue;
                 parent = p.into_parent();
             }
         } else if let Some(mut root_node) = structure.root_node() {
-            root_node.user_data().merkle_value = None;
+            *root_node.user_data() = CacheEntry::UnknownNodeValue;
         }
     }
 }
@@ -326,7 +330,7 @@ impl CalcInner {
         loop {
             // If we already have a Merkle value, jump either to the next sibling (if any), or back
             // to the parent.
-            if current.user_data().merkle_value.is_some() {
+            if matches!(current.user_data(), CacheEntry::KnownNodeValue(_)) {
                 match current.into_next_sibling() {
                     Ok(sibling) => {
                         current = sibling;
@@ -343,7 +347,7 @@ impl CalcInner {
                         }
                         // No next sibling nor parent. We have finished traversing the tree.
                         let mut root_node = trie_structure.root_node().unwrap();
-                        let merkle_value = root_node.user_data().merkle_value.clone().unwrap();
+                        let CacheEntry::KnownNodeValue(merkle_value) = root_node.user_data().clone() else { panic!() };
                         return RootMerkleValueCalculation::Finished {
                             hash: merkle_value.into(),
                             cache: self.cache,
@@ -352,7 +356,7 @@ impl CalcInner {
                 }
             }
 
-            debug_assert!(current.user_data().merkle_value.is_none());
+            debug_assert!(matches!(current.user_data(), CacheEntry::UnknownNodeValue));
 
             // If previous iteration is from `current`'s previous sibling, we jump down to
             // `current`'s children.
@@ -383,7 +387,10 @@ impl CalcInner {
                                 .child_user_data(
                                     Nibble::try_from(u8::try_from(child_idx).unwrap()).unwrap(),
                                 )
-                                .map(|child| child.merkle_value.as_ref().unwrap())
+                                .map(|child| match child {
+                                    CacheEntry::KnownNodeValue(v) => v,
+                                    _ => panic!(),
+                                })
                         }),
                         storage_value: trie_node::StorageValue::None,
                     },
@@ -391,7 +398,7 @@ impl CalcInner {
                 )
                 .unwrap();
 
-                current.user_data().merkle_value = Some(merkle_value);
+                *current.user_data() = CacheEntry::KnownNodeValue(merkle_value);
                 continue;
             }
 
@@ -422,7 +429,7 @@ impl AllKeys {
                     .into_vacant()
                     .unwrap()
                     .insert_storage_value()
-                    .insert(Default::default(), Default::default());
+                    .insert(CacheEntry::UnknownNodeValue, CacheEntry::UnknownNodeValue);
             }
             structure
         });
@@ -487,7 +494,10 @@ impl StorageValue {
                         .child_user_data(
                             Nibble::try_from(u8::try_from(child_idx).unwrap()).unwrap(),
                         )
-                        .map(|child| child.merkle_value.as_ref().unwrap())
+                        .map(|child| match child {
+                            CacheEntry::KnownNodeValue(v) => v,
+                            _ => panic!(),
+                        })
                 }),
                 storage_value: match &hashed_storage_value {
                     None => {
@@ -502,7 +512,7 @@ impl StorageValue {
         )
         .unwrap();
 
-        current.user_data().merkle_value = Some(merkle_value);
+        *current.user_data() = CacheEntry::KnownNodeValue(merkle_value);
         self.calculation.next()
     }
 }
