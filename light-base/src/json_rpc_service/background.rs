@@ -267,7 +267,27 @@ pub(super) fn start<TPlat: Platform>(
             future::Abortable::new(
                 async move {
                     loop {
-                        me.handle_request().await;
+                        let (json_rpc_request, state_machine_request_id) =
+                            me.requests_subscriptions.next_request().await;
+
+                        let future =
+                            me.handle_request(json_rpc_request.clone(), state_machine_request_id);
+                        futures::pin_mut!(future);
+                        future::poll_fn(move |cx| {
+                            let before = TPlat::now();
+                            let v = future.poll_unpin(cx);
+                            let after = TPlat::now();
+                            let elapsed = after - before;
+                            if elapsed.as_millis() >= 10 {
+                                log::warn!(
+                                    "JSON-RPC request processing took {}ms => {}",
+                                    elapsed.as_millis(),
+                                    crate::util::truncated_str(json_rpc_request.chars(), 200)
+                                );
+                            }
+                            v
+                        })
+                        .await;
 
                         // We yield once between each request in order to politely let other tasks
                         // do some work and not monopolize the CPU.
@@ -398,9 +418,11 @@ pub(super) fn start<TPlat: Platform>(
 
 impl<TPlat: Platform> Background<TPlat> {
     /// Pulls one request from the inner state machine, and processes it.
-    async fn handle_request(self: &Arc<Self>) {
-        let (json_rpc_request, state_machine_request_id) =
-            self.requests_subscriptions.next_request().await;
+    async fn handle_request(
+        self: &Arc<Self>,
+        json_rpc_request: String,
+        state_machine_request_id: requests_subscriptions::RequestId,
+    ) {
         log::debug!(target: &self.log_target, "PendingRequestsQueue => {}",
             crate::util::truncated_str(
                 json_rpc_request.chars().filter(|c| !c.is_control()),
