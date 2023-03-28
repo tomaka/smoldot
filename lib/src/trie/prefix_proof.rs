@@ -74,7 +74,16 @@ impl PrefixScan {
     /// Injects the proof presumably containing the keys returned by [`PrefixScan::requested_keys`].
     ///
     /// Returns an error if the proof is invalid. In that case, `self` isn't modified.
-    pub fn resume(mut self, proof: &[u8]) -> Result<ResumeOutcome, (Self, Error)> {
+    pub fn resume<TNow>(
+        mut self,
+        proof: &[u8],
+        now: impl Fn() -> TNow,
+    ) -> Result<(ResumeOutcome, core::time::Duration, core::time::Duration, u32), (Self, Error)>
+    where
+        TNow: Clone + core::ops::Add<core::time::Duration, Output = TNow> + core::ops::Sub<TNow, Output = core::time::Duration> + Ord,
+    {
+        let before_decode = now();
+
         let decoded_proof = match proof_decode::decode_and_verify_proof(proof_decode::Config {
             proof,
             trie_root_hash: &self.trie_root_hash,
@@ -83,10 +92,17 @@ impl PrefixScan {
             Err(err) => return Err((self, Error::InvalidProof(err))),
         };
 
+        let decode_time = now() - before_decode;
+
         let mut non_terminal_queries = mem::take(&mut self.next_queries);
+
+        let mut num_iter = 0;
+        let before_iter = now();
 
         // The entire body is executed as long as verifying at least one proof succeeds.
         for is_first_iteration in iter::once(true).chain(iter::repeat(false)) {
+            num_iter += 1;
+
             // Filled with the queries to perform at the next iteration.
             // Capacity assumes a maximum of 2 children per node on average. This value was chosen
             // completely arbitrarily.
@@ -137,9 +153,10 @@ impl PrefixScan {
 
             // Finished when nothing more to request.
             if next.is_empty() && self.next_queries.is_empty() {
-                return Ok(ResumeOutcome::Success {
+                let iter_time = now() - before_iter;
+                return Ok((ResumeOutcome::Success {
                     keys: self.final_result,
-                });
+                }, decode_time, iter_time, num_iter));
             }
 
             // If we have failed to make any progress during this iteration, return `InProgress`.
@@ -154,7 +171,9 @@ impl PrefixScan {
             non_terminal_queries = next;
         }
 
-        Ok(ResumeOutcome::InProgress(self))
+        let iter_time = now() - before_iter;
+
+        Ok((ResumeOutcome::InProgress(self), decode_time, iter_time, num_iter))
     }
 }
 

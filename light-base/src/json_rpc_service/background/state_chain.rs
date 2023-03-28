@@ -1019,7 +1019,7 @@ impl<TPlat: Platform> Background<TPlat> {
             .await;
 
         let response = match outcome {
-            Ok(keys) => {
+            Ok((keys, ..)) => {
                 let out = keys.into_iter().map(methods::HexString).collect::<Vec<_>>();
                 methods::Response::state_getKeys(out).to_json_response(request_id.0)
             }
@@ -1076,6 +1076,7 @@ impl<TPlat: Platform> Background<TPlat> {
                     methods::Response::state_getKeysPaged(out).to_json_response(request_id.0),
                 )
                 .await;
+            log::info!("getkeyspaged cache hit!");
             return;
         }
 
@@ -1115,8 +1116,11 @@ impl<TPlat: Platform> Background<TPlat> {
             )
             .await;
 
+        let final_time;
+
         let response = match outcome {
-            Ok(keys) => {
+            Ok((keys, total_decode_time, total_iter_time, total_iter)) => {
+                let before = TPlat::now();
                 // TODO: instead of requesting all keys with that prefix from the network, pass `start_key` to the network service
                 let out = keys
                     .iter()
@@ -1136,6 +1140,10 @@ impl<TPlat: Platform> Background<TPlat> {
                         .state_get_keys_paged
                         .push((hash, prefix), keys);
                 }
+
+                final_time = TPlat::now() - before;
+
+                log::info!("getkeyspaged diagnostic: decode_time={:?}, iter_time={:?}, num_iter={}, after_time={:?}", total_decode_time, total_iter_time, total_iter, final_time);
 
                 methods::Response::state_getKeysPaged(out).to_json_response(request_id.0)
             }

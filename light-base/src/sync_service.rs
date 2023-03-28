@@ -470,11 +470,15 @@ impl<TPlat: Platform> SyncService<TPlat> {
         total_attempts: u32,
         timeout_per_request: Duration,
         _max_parallel: NonZeroU32,
-    ) -> Result<Vec<Vec<u8>>, StorageQueryError> {
+    ) -> Result<(Vec<Vec<u8>>, Duration, Duration, u32), StorageQueryError> {
         let mut prefix_scan = prefix_proof::prefix_scan(prefix_proof::Config {
             prefix,
             trie_root_hash: *storage_trie_root,
         });
+
+        let mut total_decode_time = Duration::new(0, 0);
+        let mut total_iter_time = Duration::new(0, 0);
+        let mut total_iter = 0;
 
         'main_scan: loop {
             let mut outcome_errors =
@@ -507,14 +511,20 @@ impl<TPlat: Platform> SyncService<TPlat> {
 
                 match result {
                     Ok(proof) => {
-                        match prefix_scan.resume(proof.decode()) {
-                            Ok(prefix_proof::ResumeOutcome::InProgress(scan)) => {
+                        match prefix_scan.resume(proof.decode(), || TPlat::now()) {
+                            Ok((prefix_proof::ResumeOutcome::InProgress(scan), decode_time, iter_time, num_iter)) => {
+                                total_decode_time += decode_time;
+                                total_iter_time += iter_time;
+                                total_iter += num_iter;
                                 // Continue next step of the proof.
                                 prefix_scan = scan;
                                 continue 'main_scan;
                             }
-                            Ok(prefix_proof::ResumeOutcome::Success { keys }) => {
-                                return Ok(keys);
+                            Ok((prefix_proof::ResumeOutcome::Success { keys }, decode_time, iter_time, num_iter)) => {
+                                total_decode_time += decode_time;
+                                total_iter_time += iter_time;
+                                total_iter += num_iter;
+                                return Ok((keys, total_decode_time, total_iter_time, total_iter));
                             }
                             Err((scan, err)) => {
                                 prefix_scan = scan;
