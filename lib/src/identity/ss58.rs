@@ -15,6 +15,17 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+//! SS58 encoding and decoding.
+//!
+//! SS58 is a simple format containing a cryptographic public key, a chain identifier (see
+//! [`ChainPrefix`]), and a checksum. The public key and chain identifier identify a certain
+//! account on a blockchain.
+//!
+//! The mapping between chains and this prefix can be found in this central registry:
+//! <https://github.com/paritytech/ss58-registry/blob/main/ss58-registry.json>.
+//!
+//! An example SS58 address is `15oF4uVJwmo4TdGW7VfQxNLavjCXviqxT9S1MgbjMNHr6Sp5`.
+
 use alloc::{string::String, vec::Vec};
 use core::fmt;
 
