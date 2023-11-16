@@ -19,12 +19,19 @@
 #include <stdlib.h>
 #include "smoldot.h"
 
-int main()
+int main(int argc, char **argv)
 {
+    // Get the path to the chain specification from the CLI.
+    if (argc < 2)
+    {
+        printf("Usage: %s <path-to-chain-specification-json-file>\n", argv[0]);
+        return -1;
+    }
+
     // Read the chain specification into `buffer`.
     char *buffer = 0;
     long length;
-    FILE *f = fopen("../../demo-chain-specs/polkadot.json", "rb");
+    FILE *f = fopen(argv[1], "rb");
     if (!f)
     {
         printf("couldn't open chain spec file");
