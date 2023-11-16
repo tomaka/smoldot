@@ -2495,6 +2495,7 @@ dependencies = [
  "fnv",
  "futures-lite 2.0.1",
  "hashbrown 0.14.2",
+ "libc",
  "smoldot-light",
 ]
 

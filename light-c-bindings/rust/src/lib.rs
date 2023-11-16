@@ -22,9 +22,8 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-// TODO: proper return type, see https://github.com/rust-lang/rust/issues/88345
 #[no_mangle]
-pub unsafe extern "C" fn smoldot_add_chain(chain_spec: *const i8) -> usize {
+pub unsafe extern "C" fn smoldot_add_chain(chain_spec: *const libc::c_char) -> libc::size_t {
     let specification = CStr::from_ptr(chain_spec)
         .to_str()
         .unwrap_or_else(|_| panic!("non-utf8 chain specification"));
@@ -56,9 +55,8 @@ pub unsafe extern "C" fn smoldot_add_chain(chain_spec: *const i8) -> usize {
     usize::from(chain_id)
 }
 
-// TODO: parameter type, see https://github.com/rust-lang/rust/issues/88345
 #[no_mangle]
-pub unsafe extern "C" fn smoldot_remove_chain(chain_id: usize) {
+pub unsafe extern "C" fn smoldot_remove_chain(chain_id: libc::size_t) {
     let chain_id = smoldot_light::ChainId::from(chain_id);
 
     let mut global_state = global_state().lock().unwrap();
@@ -70,9 +68,11 @@ pub unsafe extern "C" fn smoldot_remove_chain(chain_id: usize) {
     let () = global_state.client.remove_chain(chain_id);
 }
 
-// TODO: parameter type, see https://github.com/rust-lang/rust/issues/88345
 #[no_mangle]
-pub unsafe extern "C" fn smoldot_json_rpc_request(chain_id: usize, json_rpc_request: *const i8) {
+pub unsafe extern "C" fn smoldot_json_rpc_request(
+    chain_id: libc::size_t,
+    json_rpc_request: *const libc::c_char,
+) {
     let json_rpc_request = CStr::from_ptr(json_rpc_request)
         .to_str()
         .unwrap_or_else(|_| panic!("non-utf8 json-rpc request"));
@@ -87,9 +87,8 @@ pub unsafe extern "C" fn smoldot_json_rpc_request(chain_id: usize, json_rpc_requ
         .unwrap();
 }
 
-// TODO: parameter type, see https://github.com/rust-lang/rust/issues/88345
 #[no_mangle]
-pub unsafe extern "C" fn smoldot_wait_next_json_rpc_response(chain_id: usize) -> *mut i8 {
+pub unsafe extern "C" fn smoldot_wait_next_json_rpc_response(chain_id: libc::size_t) -> *const libc::c_char {
     let chain_id = smoldot_light::ChainId::from(chain_id);
 
     let json_rpc_responses = {
@@ -112,14 +111,13 @@ pub unsafe extern "C" fn smoldot_wait_next_json_rpc_response(chain_id: usize) ->
     cstring.into_raw()
 }
 
-// TODO: parameter type, see https://github.com/rust-lang/rust/issues/88345
 #[no_mangle]
-pub unsafe extern "C" fn smoldot_next_json_rpc_response_free(s: *mut i8) {
+pub unsafe extern "C" fn smoldot_next_json_rpc_response_free(s: *const libc::c_char) {
     if s.is_null() {
         panic!("null pointer passed to smoldot_next_json_rpc_response_free")
     }
 
-    let _ = CString::from_raw(s);
+    let _ = CString::from_raw(s as *mut _);
 }
 
 fn global_state() -> &'static Mutex<GlobalState> {
