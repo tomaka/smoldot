@@ -21,26 +21,24 @@
 
 int main()
 {
+    // Read the chain specification into `buffer`.
     char *buffer = 0;
     long length;
-
     FILE *f = fopen("../../demo-chain-specs/polkadot.json", "rb");
     if (!f)
     {
         printf("couldn't open chain spec file");
         return -1;
     }
-
     fseek(f, 0, SEEK_END);
     length = ftell(f);
     fseek(f, 0, SEEK_SET);
     buffer = malloc(length + 1);
-    if (buffer)
-    {
-        fread(buffer, 1, length, f);
-    }
+    fread(buffer, 1, length, f);
     fclose(f);
     buffer[length] = '\0';
+
+    // Now actually start using smoldot.
 
     size_t chain_id = smoldot_add_chain(buffer);
     smoldot_json_rpc_request(chain_id, "{\"id\":1,\"jsonrpc\":\"2.0\",\"method\":\"chain_subscribeNewHeads\",\"params\":[]}");
