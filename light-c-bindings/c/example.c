@@ -48,7 +48,7 @@ int main()
     while (1)
     {
         const char *response = smoldot_wait_next_json_rpc_response(chain_id);
-        printf("JSON-RPC response: %s", response);
+        printf("JSON-RPC response: %s\n", response);
         smoldot_next_json_rpc_response_free(response);
     }
 
