@@ -12,8 +12,6 @@ publish = false
 [lib]
 crate-type = ["cdylib", "staticlib"]
 
-# TODO: force the "abort" panic strategy somehow?
-
 [dependencies]
 async-lock = { version = "3.1.0", features = ["std"] }
 env_logger = "*"  # TODO:
