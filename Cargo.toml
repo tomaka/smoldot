@@ -5,6 +5,7 @@ members = [
     "lib",
     "full-node",
     "light-base",
+    "light-c-bindings/rust",
     "wasm-node/rust",
 ]
 

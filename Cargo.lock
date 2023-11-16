@@ -1137,7 +1137,11 @@ version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3831c2651acb5177cbd83943f3d9c8912c5ad03c76afcc0e9511ba568ec5ebb"
 dependencies = [
+ "fastrand 2.0.1",
  "futures-core",
+ "futures-io",
+ "memchr",
+ "parking",
  "pin-project-lite",
 ]
 
@@ -2480,6 +2484,18 @@ dependencies = [
  "smol",
  "smoldot",
  "zeroize",
+]
+
+[[package]]
+name = "smoldot-light-c-bindings"
+version = "0.1.0"
+dependencies = [
+ "async-lock 3.1.0",
+ "env_logger",
+ "fnv",
+ "futures-lite 2.0.1",
+ "hashbrown 0.14.2",
+ "smoldot-light",
 ]
 
 [[package]]
