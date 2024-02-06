@@ -68,7 +68,7 @@ impl InterpreterPrototype {
             // Disable all the post-MVP wasm features.
             config.wasm_sign_extension(false);
             config.wasm_reference_types(false);
-            config.wasm_bulk_memory(false);
+            //config.wasm_bulk_memory(false);
             config.wasm_multi_value(false);
             config.wasm_extended_const(false);
             config.wasm_mutable_global(false);
@@ -183,7 +183,7 @@ impl InterpreterPrototype {
         let instance = linker
             .instantiate(&mut store, &base_components.module)
             .map_err(|err| NewErr::Instantiation(err.to_string()))?
-            .ensure_no_start(&mut store)
+            .start(&mut store)
             .map_err(|_| NewErr::StartFunctionNotSupported)?;
 
         let exported_memory = match instance.get_export(&store, "memory") {

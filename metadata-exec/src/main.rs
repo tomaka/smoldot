@@ -45,10 +45,14 @@ fn main() {
         match runtime_call {
             executor::runtime_call::RuntimeCall::Finished(Err(err)) => panic!("{err}"),
             executor::runtime_call::RuntimeCall::Finished(Ok(_)) => break,
-            executor::runtime_call::RuntimeCall::StorageGet(_)
-            | executor::runtime_call::RuntimeCall::NextKey(_)
-            | executor::runtime_call::RuntimeCall::ClosestDescendantMerkleValue(_) => {
+            executor::runtime_call::RuntimeCall::StorageGet(vm) => {
+                panic!("{:?}", vm.key().as_ref());
+            }
+            executor::runtime_call::RuntimeCall::NextKey(vm) => {
                 unreachable!()
+            }
+            executor::runtime_call::RuntimeCall::ClosestDescendantMerkleValue(vm) => {
+                runtime_call = vm.resume_unknown();
             }
             executor::runtime_call::RuntimeCall::LogEmit(vm) => {
                 runtime_call = vm.resume();
