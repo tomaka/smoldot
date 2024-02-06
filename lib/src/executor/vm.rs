@@ -66,21 +66,6 @@
 mod interpreter;
 
 // This list of targets matches the one in the `Cargo.toml` file.
-#[cfg(all(
-    any(
-        all(
-            target_arch = "x86_64",
-            any(
-                target_os = "windows",
-                all(target_os = "linux", target_env = "gnu"),
-                target_os = "macos"
-            )
-        ),
-        all(target_arch = "aarch64", target_os = "linux", target_env = "gnu"),
-        all(target_arch = "s390x", target_os = "linux", target_env = "gnu")
-    ),
-    feature = "wasmtime"
-))]
 mod jit;
 
 mod tests;
@@ -114,21 +99,6 @@ pub struct VirtualMachinePrototype {
 
 #[derive(Clone)]
 enum VirtualMachinePrototypeInner {
-    #[cfg(all(
-        any(
-            all(
-                target_arch = "x86_64",
-                any(
-                    target_os = "windows",
-                    all(target_os = "linux", target_env = "gnu"),
-                    target_os = "macos"
-                )
-            ),
-            all(target_arch = "aarch64", all(target_os = "linux", target_env = "gnu")),
-            all(target_arch = "s390x", all(target_os = "linux", target_env = "gnu"))
-        ),
-        feature = "wasmtime"
-    ))]
     Jit(jit::JitPrototype),
     Interpreter(interpreter::InterpreterPrototype),
 }
@@ -142,39 +112,9 @@ impl VirtualMachinePrototype {
     pub fn new(config: Config) -> Result<Self, NewErr> {
         Ok(VirtualMachinePrototype {
             inner: match config.exec_hint {
-                #[cfg(all(
-                    any(
-                        all(
-                            target_arch = "x86_64",
-                            any(
-                                target_os = "windows",
-                                all(target_os = "linux", target_env = "gnu"),
-                                target_os = "macos"
-                            )
-                        ),
-                        all(target_arch = "aarch64", all(target_os = "linux", target_env = "gnu")),
-                        all(target_arch = "s390x", all(target_os = "linux", target_env = "gnu"))
-                    ),
-                    feature = "wasmtime"
-                ))]
                 ExecHint::ValidateAndCompile => VirtualMachinePrototypeInner::Jit(
                     jit::JitPrototype::new(config.module_bytes, config.symbols)?,
                 ),
-                #[cfg(not(all(
-                    any(
-                        all(
-                            target_arch = "x86_64",
-                            any(
-                                target_os = "windows",
-                                all(target_os = "linux", target_env = "gnu"),
-                                target_os = "macos"
-                            )
-                        ),
-                        all(target_arch = "aarch64", all(target_os = "linux", target_env = "gnu")),
-                        all(target_arch = "s390x", all(target_os = "linux", target_env = "gnu"))
-                    ),
-                    feature = "wasmtime"
-                )))]
                 ExecHint::ValidateAndCompile => VirtualMachinePrototypeInner::Interpreter(
                     interpreter::InterpreterPrototype::new(
                         config.module_bytes,
@@ -215,21 +155,6 @@ impl VirtualMachinePrototype {
                     )
                 }
 
-                #[cfg(all(
-                    any(
-                        all(
-                            target_arch = "x86_64",
-                            any(
-                                target_os = "windows",
-                                all(target_os = "linux", target_env = "gnu"),
-                                target_os = "macos"
-                            )
-                        ),
-                        all(target_arch = "aarch64", all(target_os = "linux", target_env = "gnu")),
-                        all(target_arch = "s390x", all(target_os = "linux", target_env = "gnu"))
-                    ),
-                    feature = "wasmtime"
-                ))]
                 ExecHint::ForceWasmtime => VirtualMachinePrototypeInner::Jit(
                     jit::JitPrototype::new(config.module_bytes, config.symbols)?,
                 ),
@@ -243,21 +168,6 @@ impl VirtualMachinePrototype {
     /// silently reinterpreted as an unsigned integer.
     pub fn global_value(&mut self, name: &str) -> Result<u32, GlobalValueErr> {
         match &mut self.inner {
-            #[cfg(all(
-                any(
-                    all(
-                        target_arch = "x86_64",
-                        any(
-                            target_os = "windows",
-                            all(target_os = "linux", target_env = "gnu"),
-                            target_os = "macos"
-                        )
-                    ),
-                    all(target_arch = "aarch64", all(target_os = "linux", target_env = "gnu")),
-                    all(target_arch = "s390x", all(target_os = "linux", target_env = "gnu"))
-                ),
-                feature = "wasmtime"
-            ))]
             VirtualMachinePrototypeInner::Jit(inner) => inner.global_value(name),
             VirtualMachinePrototypeInner::Interpreter(inner) => inner.global_value(name),
         }
@@ -268,21 +178,6 @@ impl VirtualMachinePrototype {
     /// `None` if there is no limit.
     pub fn memory_max_pages(&self) -> Option<HeapPages> {
         match &self.inner {
-            #[cfg(all(
-                any(
-                    all(
-                        target_arch = "x86_64",
-                        any(
-                            target_os = "windows",
-                            all(target_os = "linux", target_env = "gnu"),
-                            target_os = "macos"
-                        )
-                    ),
-                    all(target_arch = "aarch64", all(target_os = "linux", target_env = "gnu")),
-                    all(target_arch = "s390x", all(target_os = "linux", target_env = "gnu"))
-                ),
-                feature = "wasmtime"
-            ))]
             VirtualMachinePrototypeInner::Jit(inner) => inner.memory_max_pages(),
             VirtualMachinePrototypeInner::Interpreter(inner) => inner.memory_max_pages(),
         }
@@ -294,21 +189,6 @@ impl VirtualMachinePrototype {
     /// the actual execution..
     pub fn prepare(self) -> Prepare {
         match self.inner {
-            #[cfg(all(
-                any(
-                    all(
-                        target_arch = "x86_64",
-                        any(
-                            target_os = "windows",
-                            all(target_os = "linux", target_env = "gnu"),
-                            target_os = "macos"
-                        )
-                    ),
-                    all(target_arch = "aarch64", all(target_os = "linux", target_env = "gnu")),
-                    all(target_arch = "s390x", all(target_os = "linux", target_env = "gnu"))
-                ),
-                feature = "wasmtime"
-            ))]
             VirtualMachinePrototypeInner::Jit(inner) => Prepare {
                 inner: PrepareInner::Jit(inner.prepare()),
             },
@@ -322,21 +202,6 @@ impl VirtualMachinePrototype {
 impl fmt::Debug for VirtualMachinePrototype {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match &self.inner {
-            #[cfg(all(
-                any(
-                    all(
-                        target_arch = "x86_64",
-                        any(
-                            target_os = "windows",
-                            all(target_os = "linux", target_env = "gnu"),
-                            target_os = "macos"
-                        )
-                    ),
-                    all(target_arch = "aarch64", all(target_os = "linux", target_env = "gnu")),
-                    all(target_arch = "s390x", all(target_os = "linux", target_env = "gnu"))
-                ),
-                feature = "wasmtime"
-            ))]
             VirtualMachinePrototypeInner::Jit(inner) => fmt::Debug::fmt(inner, f),
             VirtualMachinePrototypeInner::Interpreter(inner) => fmt::Debug::fmt(inner, f),
         }
@@ -348,21 +213,6 @@ pub struct Prepare {
 }
 
 enum PrepareInner {
-    #[cfg(all(
-        any(
-            all(
-                target_arch = "x86_64",
-                any(
-                    target_os = "windows",
-                    all(target_os = "linux", target_env = "gnu"),
-                    target_os = "macos"
-                )
-            ),
-            all(target_arch = "aarch64", all(target_os = "linux", target_env = "gnu")),
-            all(target_arch = "s390x", all(target_os = "linux", target_env = "gnu"))
-        ),
-        feature = "wasmtime"
-    ))]
     Jit(jit::Prepare),
     Interpreter(interpreter::Prepare),
 }
@@ -372,21 +222,6 @@ impl Prepare {
     pub fn into_prototype(self) -> VirtualMachinePrototype {
         VirtualMachinePrototype {
             inner: match self.inner {
-                #[cfg(all(
-                    any(
-                        all(
-                            target_arch = "x86_64",
-                            any(
-                                target_os = "windows",
-                                all(target_os = "linux", target_env = "gnu"),
-                                target_os = "macos"
-                            )
-                        ),
-                        all(target_arch = "aarch64", all(target_os = "linux", target_env = "gnu")),
-                        all(target_arch = "s390x", all(target_os = "linux", target_env = "gnu"))
-                    ),
-                    feature = "wasmtime"
-                ))]
                 PrepareInner::Jit(inner) => {
                     VirtualMachinePrototypeInner::Jit(inner.into_prototype())
                 }
@@ -400,21 +235,6 @@ impl Prepare {
     /// Returns the size of the memory, in bytes.
     pub fn memory_size(&self) -> HeapPages {
         match &self.inner {
-            #[cfg(all(
-                any(
-                    all(
-                        target_arch = "x86_64",
-                        any(
-                            target_os = "windows",
-                            all(target_os = "linux", target_env = "gnu"),
-                            target_os = "macos"
-                        )
-                    ),
-                    all(target_arch = "aarch64", all(target_os = "linux", target_env = "gnu")),
-                    all(target_arch = "s390x", all(target_os = "linux", target_env = "gnu"))
-                ),
-                feature = "wasmtime"
-            ))]
             PrepareInner::Jit(inner) => inner.memory_size(),
             PrepareInner::Interpreter(inner) => inner.memory_size(),
         }
@@ -429,54 +249,9 @@ impl Prepare {
         size: u32,
     ) -> Result<impl AsRef<[u8]> + '_, OutOfBoundsError> {
         Ok(match &self.inner {
-            #[cfg(all(
-                any(
-                    all(
-                        target_arch = "x86_64",
-                        any(
-                            target_os = "windows",
-                            all(target_os = "linux", target_env = "gnu"),
-                            target_os = "macos"
-                        )
-                    ),
-                    all(target_arch = "aarch64", all(target_os = "linux", target_env = "gnu")),
-                    all(target_arch = "s390x", all(target_os = "linux", target_env = "gnu"))
-                ),
-                feature = "wasmtime"
-            ))]
             PrepareInner::Jit(inner) => either::Left(inner.read_memory(offset, size)?),
-            #[cfg(all(
-                any(
-                    all(
-                        target_arch = "x86_64",
-                        any(
-                            target_os = "windows",
-                            all(target_os = "linux", target_env = "gnu"),
-                            target_os = "macos"
-                        )
-                    ),
-                    all(target_arch = "aarch64", all(target_os = "linux", target_env = "gnu")),
-                    all(target_arch = "s390x", all(target_os = "linux", target_env = "gnu"))
-                ),
-                feature = "wasmtime"
-            ))]
+
             PrepareInner::Interpreter(inner) => either::Right(inner.read_memory(offset, size)?),
-            #[cfg(not(all(
-                any(
-                    all(
-                        target_arch = "x86_64",
-                        any(
-                            target_os = "windows",
-                            all(target_os = "linux", target_env = "gnu"),
-                            target_os = "macos"
-                        )
-                    ),
-                    all(target_arch = "aarch64", all(target_os = "linux", target_env = "gnu")),
-                    all(target_arch = "s390x", all(target_os = "linux", target_env = "gnu"))
-                ),
-                feature = "wasmtime"
-            )))]
-            PrepareInner::Interpreter(inner) => inner.read_memory(offset, size)?,
         })
     }
 
@@ -485,21 +260,6 @@ impl Prepare {
     /// Returns an error if the range is invalid or out of range.
     pub fn write_memory(&mut self, offset: u32, value: &[u8]) -> Result<(), OutOfBoundsError> {
         match &mut self.inner {
-            #[cfg(all(
-                any(
-                    all(
-                        target_arch = "x86_64",
-                        any(
-                            target_os = "windows",
-                            all(target_os = "linux", target_env = "gnu"),
-                            target_os = "macos"
-                        )
-                    ),
-                    all(target_arch = "aarch64", all(target_os = "linux", target_env = "gnu")),
-                    all(target_arch = "s390x", all(target_os = "linux", target_env = "gnu"))
-                ),
-                feature = "wasmtime"
-            ))]
             PrepareInner::Jit(inner) => inner.write_memory(offset, value),
             PrepareInner::Interpreter(inner) => inner.write_memory(offset, value),
         }
@@ -511,21 +271,6 @@ impl Prepare {
     /// of time by using [`VirtualMachinePrototype::memory_max_pages`].
     pub fn grow_memory(&mut self, additional: HeapPages) -> Result<(), OutOfBoundsError> {
         match &mut self.inner {
-            #[cfg(all(
-                any(
-                    all(
-                        target_arch = "x86_64",
-                        any(
-                            target_os = "windows",
-                            all(target_os = "linux", target_env = "gnu"),
-                            target_os = "macos"
-                        )
-                    ),
-                    all(target_arch = "aarch64", all(target_os = "linux", target_env = "gnu")),
-                    all(target_arch = "s390x", all(target_os = "linux", target_env = "gnu"))
-                ),
-                feature = "wasmtime"
-            ))]
             PrepareInner::Jit(inner) => inner.grow_memory(additional),
             PrepareInner::Interpreter(inner) => inner.grow_memory(additional),
         }
@@ -540,21 +285,6 @@ impl Prepare {
     ) -> Result<VirtualMachine, (StartErr, VirtualMachinePrototype)> {
         Ok(VirtualMachine {
             inner: match self.inner {
-                #[cfg(all(
-                    any(
-                        all(
-                            target_arch = "x86_64",
-                            any(
-                                target_os = "windows",
-                                all(target_os = "linux", target_env = "gnu"),
-                                target_os = "macos"
-                            )
-                        ),
-                        all(target_arch = "aarch64", all(target_os = "linux", target_env = "gnu")),
-                        all(target_arch = "s390x", all(target_os = "linux", target_env = "gnu"))
-                    ),
-                    feature = "wasmtime"
-                ))]
                 PrepareInner::Jit(inner) => match inner.start(function_name, params) {
                     Ok(vm) => VirtualMachineInner::Jit(vm),
                     Err((err, proto)) => {
@@ -585,21 +315,6 @@ impl Prepare {
 impl fmt::Debug for Prepare {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match &self.inner {
-            #[cfg(all(
-                any(
-                    all(
-                        target_arch = "x86_64",
-                        any(
-                            target_os = "windows",
-                            all(target_os = "linux", target_env = "gnu"),
-                            target_os = "macos"
-                        )
-                    ),
-                    all(target_arch = "aarch64", all(target_os = "linux", target_env = "gnu")),
-                    all(target_arch = "s390x", all(target_os = "linux", target_env = "gnu"))
-                ),
-                feature = "wasmtime"
-            ))]
             PrepareInner::Jit(inner) => fmt::Debug::fmt(inner, f),
             PrepareInner::Interpreter(inner) => fmt::Debug::fmt(inner, f),
         }
@@ -611,21 +326,6 @@ pub struct VirtualMachine {
 }
 
 enum VirtualMachineInner {
-    #[cfg(all(
-        any(
-            all(
-                target_arch = "x86_64",
-                any(
-                    target_os = "windows",
-                    all(target_os = "linux", target_env = "gnu"),
-                    target_os = "macos"
-                )
-            ),
-            all(target_arch = "aarch64", all(target_os = "linux", target_env = "gnu")),
-            all(target_arch = "s390x", all(target_os = "linux", target_env = "gnu"))
-        ),
-        feature = "wasmtime"
-    ))]
     Jit(jit::Jit),
     Interpreter(interpreter::Interpreter),
 }
@@ -640,21 +340,6 @@ impl VirtualMachine {
     /// that call.
     pub fn run(&mut self, value: Option<WasmValue>) -> Result<ExecOutcome, RunErr> {
         match &mut self.inner {
-            #[cfg(all(
-                any(
-                    all(
-                        target_arch = "x86_64",
-                        any(
-                            target_os = "windows",
-                            all(target_os = "linux", target_env = "gnu"),
-                            target_os = "macos"
-                        )
-                    ),
-                    all(target_arch = "aarch64", all(target_os = "linux", target_env = "gnu")),
-                    all(target_arch = "s390x", all(target_os = "linux", target_env = "gnu"))
-                ),
-                feature = "wasmtime"
-            ))]
             VirtualMachineInner::Jit(inner) => inner.run(value),
             VirtualMachineInner::Interpreter(inner) => inner.run(value),
         }
@@ -665,21 +350,6 @@ impl VirtualMachine {
     /// > **Note**: This can change over time if the Wasm code uses the `grow` opcode.
     pub fn memory_size(&self) -> HeapPages {
         match &self.inner {
-            #[cfg(all(
-                any(
-                    all(
-                        target_arch = "x86_64",
-                        any(
-                            target_os = "windows",
-                            all(target_os = "linux", target_env = "gnu"),
-                            target_os = "macos"
-                        )
-                    ),
-                    all(target_arch = "aarch64", all(target_os = "linux", target_env = "gnu")),
-                    all(target_arch = "s390x", all(target_os = "linux", target_env = "gnu"))
-                ),
-                feature = "wasmtime"
-            ))]
             VirtualMachineInner::Jit(inner) => inner.memory_size(),
             VirtualMachineInner::Interpreter(inner) => inner.memory_size(),
         }
@@ -694,56 +364,11 @@ impl VirtualMachine {
         size: u32,
     ) -> Result<impl AsRef<[u8]> + '_, OutOfBoundsError> {
         Ok(match &self.inner {
-            #[cfg(all(
-                any(
-                    all(
-                        target_arch = "x86_64",
-                        any(
-                            target_os = "windows",
-                            all(target_os = "linux", target_env = "gnu"),
-                            target_os = "macos"
-                        )
-                    ),
-                    all(target_arch = "aarch64", all(target_os = "linux", target_env = "gnu")),
-                    all(target_arch = "s390x", all(target_os = "linux", target_env = "gnu"))
-                ),
-                feature = "wasmtime"
-            ))]
             VirtualMachineInner::Jit(inner) => either::Left(inner.read_memory(offset, size)?),
-            #[cfg(all(
-                any(
-                    all(
-                        target_arch = "x86_64",
-                        any(
-                            target_os = "windows",
-                            all(target_os = "linux", target_env = "gnu"),
-                            target_os = "macos"
-                        )
-                    ),
-                    all(target_arch = "aarch64", all(target_os = "linux", target_env = "gnu")),
-                    all(target_arch = "s390x", all(target_os = "linux", target_env = "gnu"))
-                ),
-                feature = "wasmtime"
-            ))]
+
             VirtualMachineInner::Interpreter(inner) => {
                 either::Right(inner.read_memory(offset, size)?)
             }
-            #[cfg(not(all(
-                any(
-                    all(
-                        target_arch = "x86_64",
-                        any(
-                            target_os = "windows",
-                            all(target_os = "linux", target_env = "gnu"),
-                            target_os = "macos"
-                        )
-                    ),
-                    all(target_arch = "aarch64", all(target_os = "linux", target_env = "gnu")),
-                    all(target_arch = "s390x", all(target_os = "linux", target_env = "gnu"))
-                ),
-                feature = "wasmtime"
-            )))]
-            VirtualMachineInner::Interpreter(inner) => inner.read_memory(offset, size)?,
         })
     }
 
@@ -752,21 +377,6 @@ impl VirtualMachine {
     /// Returns an error if the range is invalid or out of range.
     pub fn write_memory(&mut self, offset: u32, value: &[u8]) -> Result<(), OutOfBoundsError> {
         match &mut self.inner {
-            #[cfg(all(
-                any(
-                    all(
-                        target_arch = "x86_64",
-                        any(
-                            target_os = "windows",
-                            all(target_os = "linux", target_env = "gnu"),
-                            target_os = "macos"
-                        )
-                    ),
-                    all(target_arch = "aarch64", all(target_os = "linux", target_env = "gnu")),
-                    all(target_arch = "s390x", all(target_os = "linux", target_env = "gnu"))
-                ),
-                feature = "wasmtime"
-            ))]
             VirtualMachineInner::Jit(inner) => inner.write_memory(offset, value),
             VirtualMachineInner::Interpreter(inner) => inner.write_memory(offset, value),
         }
@@ -778,21 +388,6 @@ impl VirtualMachine {
     /// of time by using [`VirtualMachinePrototype::memory_max_pages`].
     pub fn grow_memory(&mut self, additional: HeapPages) -> Result<(), OutOfBoundsError> {
         match &mut self.inner {
-            #[cfg(all(
-                any(
-                    all(
-                        target_arch = "x86_64",
-                        any(
-                            target_os = "windows",
-                            all(target_os = "linux", target_env = "gnu"),
-                            target_os = "macos"
-                        )
-                    ),
-                    all(target_arch = "aarch64", all(target_os = "linux", target_env = "gnu")),
-                    all(target_arch = "s390x", all(target_os = "linux", target_env = "gnu"))
-                ),
-                feature = "wasmtime"
-            ))]
             VirtualMachineInner::Jit(inner) => inner.grow_memory(additional),
             VirtualMachineInner::Interpreter(inner) => inner.grow_memory(additional),
         }
@@ -802,21 +397,6 @@ impl VirtualMachine {
     pub fn into_prototype(self) -> VirtualMachinePrototype {
         VirtualMachinePrototype {
             inner: match self.inner {
-                #[cfg(all(
-                    any(
-                        all(
-                            target_arch = "x86_64",
-                            any(
-                                target_os = "windows",
-                                all(target_os = "linux", target_env = "gnu"),
-                                target_os = "macos"
-                            )
-                        ),
-                        all(target_arch = "aarch64", all(target_os = "linux", target_env = "gnu")),
-                        all(target_arch = "s390x", all(target_os = "linux", target_env = "gnu"))
-                    ),
-                    feature = "wasmtime"
-                ))]
                 VirtualMachineInner::Jit(inner) => {
                     VirtualMachinePrototypeInner::Jit(inner.into_prototype())
                 }
@@ -831,21 +411,6 @@ impl VirtualMachine {
 impl fmt::Debug for VirtualMachine {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match &self.inner {
-            #[cfg(all(
-                any(
-                    all(
-                        target_arch = "x86_64",
-                        any(
-                            target_os = "windows",
-                            all(target_os = "linux", target_env = "gnu"),
-                            target_os = "macos"
-                        )
-                    ),
-                    all(target_arch = "aarch64", all(target_os = "linux", target_env = "gnu")),
-                    all(target_arch = "s390x", all(target_os = "linux", target_env = "gnu"))
-                ),
-                feature = "wasmtime"
-            ))]
             VirtualMachineInner::Jit(inner) => fmt::Debug::fmt(inner, f),
             VirtualMachineInner::Interpreter(inner) => fmt::Debug::fmt(inner, f),
         }
@@ -891,39 +456,6 @@ pub enum ExecHint {
     /// Forces using the `wasmtime` backend.
     ///
     /// This variant is useful for testing purposes.
-    #[cfg(all(
-        any(
-            all(
-                target_arch = "x86_64",
-                any(
-                    target_os = "windows",
-                    all(target_os = "linux", target_env = "gnu"),
-                    target_os = "macos"
-                )
-            ),
-            all(target_arch = "aarch64", all(target_os = "linux", target_env = "gnu")),
-            all(target_arch = "s390x", all(target_os = "linux", target_env = "gnu"))
-        ),
-        feature = "wasmtime"
-    ))]
-    #[cfg_attr(
-        docsrs,
-        doc(cfg(all(
-            any(
-                all(
-                    target_arch = "x86_64",
-                    any(
-                        target_os = "windows",
-                        all(target_os = "linux", target_env = "gnu"),
-                        target_os = "macos"
-                    )
-                ),
-                all(target_arch = "aarch64", all(target_os = "linux", target_env = "gnu")),
-                all(target_arch = "s390x", all(target_os = "linux", target_env = "gnu"))
-            ),
-            feature = "wasmtime"
-        )))
-    )]
     ForceWasmtime,
 }
 
@@ -940,41 +472,8 @@ impl ExecHint {
 
     /// Returns `ForceWasmtime` if it is available on the current platform, and `None` otherwise.
     pub fn force_wasmtime_if_available() -> Option<ExecHint> {
-        #[cfg(all(
-            any(
-                all(
-                    target_arch = "x86_64",
-                    any(
-                        target_os = "windows",
-                        all(target_os = "linux", target_env = "gnu"),
-                        target_os = "macos"
-                    )
-                ),
-                all(target_arch = "aarch64", all(target_os = "linux", target_env = "gnu")),
-                all(target_arch = "s390x", all(target_os = "linux", target_env = "gnu"))
-            ),
-            feature = "wasmtime"
-        ))]
         fn value() -> Option<ExecHint> {
             Some(ExecHint::ForceWasmtime)
-        }
-        #[cfg(not(all(
-            any(
-                all(
-                    target_arch = "x86_64",
-                    any(
-                        target_os = "windows",
-                        all(target_os = "linux", target_env = "gnu"),
-                        target_os = "macos"
-                    )
-                ),
-                all(target_arch = "aarch64", all(target_os = "linux", target_env = "gnu")),
-                all(target_arch = "s390x", all(target_os = "linux", target_env = "gnu"))
-            ),
-            feature = "wasmtime"
-        )))]
-        fn value() -> Option<ExecHint> {
-            None
         }
         value()
     }
@@ -1100,21 +599,6 @@ impl<'a> TryFrom<&'a wasmi::FuncType> for Signature {
     }
 }
 
-#[cfg(all(
-    any(
-        all(
-            target_arch = "x86_64",
-            any(
-                target_os = "windows",
-                all(target_os = "linux", target_env = "gnu"),
-                target_os = "macos"
-            )
-        ),
-        all(target_arch = "aarch64", target_os = "linux", target_env = "gnu"),
-        all(target_arch = "s390x", target_os = "linux", target_env = "gnu")
-    ),
-    feature = "wasmtime"
-))]
 impl<'a> TryFrom<&'a wasmtime::FuncType> for Signature {
     type Error = UnsupportedTypeError;
 
@@ -1222,21 +706,6 @@ impl From<WasmValue> for wasmi::Value {
     }
 }
 
-#[cfg(all(
-    any(
-        all(
-            target_arch = "x86_64",
-            any(
-                target_os = "windows",
-                all(target_os = "linux", target_env = "gnu"),
-                target_os = "macos"
-            )
-        ),
-        all(target_arch = "aarch64", target_os = "linux", target_env = "gnu"),
-        all(target_arch = "s390x", target_os = "linux", target_env = "gnu")
-    ),
-    feature = "wasmtime"
-))]
 impl From<WasmValue> for wasmtime::Val {
     fn from(val: WasmValue) -> Self {
         match val {
@@ -1246,21 +715,6 @@ impl From<WasmValue> for wasmtime::Val {
     }
 }
 
-#[cfg(all(
-    any(
-        all(
-            target_arch = "x86_64",
-            any(
-                target_os = "windows",
-                all(target_os = "linux", target_env = "gnu"),
-                target_os = "macos"
-            )
-        ),
-        all(target_arch = "aarch64", target_os = "linux", target_env = "gnu"),
-        all(target_arch = "s390x", target_os = "linux", target_env = "gnu")
-    ),
-    feature = "wasmtime"
-))]
 impl<'a> TryFrom<&'a wasmtime::Val> for WasmValue {
     type Error = UnsupportedTypeError;
 
@@ -1294,21 +748,6 @@ impl TryFrom<wasmi::core::ValueType> for ValueType {
     }
 }
 
-#[cfg(all(
-    any(
-        all(
-            target_arch = "x86_64",
-            any(
-                target_os = "windows",
-                all(target_os = "linux", target_env = "gnu"),
-                target_os = "macos"
-            )
-        ),
-        all(target_arch = "aarch64", target_os = "linux", target_env = "gnu"),
-        all(target_arch = "s390x", target_os = "linux", target_env = "gnu")
-    ),
-    feature = "wasmtime"
-))]
 impl TryFrom<wasmtime::ValType> for ValueType {
     type Error = UnsupportedTypeError;
 
