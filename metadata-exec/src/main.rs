@@ -46,8 +46,19 @@ fn main() {
             executor::runtime_call::RuntimeCall::Finished(Err(err)) => panic!("{err}"),
             executor::runtime_call::RuntimeCall::Finished(Ok(_)) => break,
             executor::runtime_call::RuntimeCall::StorageGet(vm) => {
-                runtime_call = vm.inject_value(None::<(iter::Empty<Vec<u8>>, _)>);
-                //panic!("{:?}", vm.key().as_ref());
+                if vm.key().as_ref()
+                    == [
+                        95, 62, 73, 7, 247, 22, 172, 137, 182, 52, 125, 21, 236, 236, 237, 202, 11,
+                        106, 69, 50, 30, 250, 233, 42, 234, 21, 224, 116, 14, 199, 175, 231,
+                    ]
+                {
+                    runtime_call = vm.inject_value(Some((
+                        iter::once([18, 29, 0, 0]),
+                        executor::runtime_call::TrieEntryVersion::V0,
+                    )));
+                } else {
+                    panic!()
+                }
             }
             executor::runtime_call::RuntimeCall::NextKey(_vm) => {
                 unreachable!()
