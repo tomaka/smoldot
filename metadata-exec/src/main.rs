@@ -46,9 +46,10 @@ fn main() {
             executor::runtime_call::RuntimeCall::Finished(Err(err)) => panic!("{err}"),
             executor::runtime_call::RuntimeCall::Finished(Ok(_)) => break,
             executor::runtime_call::RuntimeCall::StorageGet(vm) => {
-                panic!("{:?}", vm.key().as_ref());
+                runtime_call = vm.inject_value(None::<(iter::Empty<Vec<u8>>, _)>);
+                //panic!("{:?}", vm.key().as_ref());
             }
-            executor::runtime_call::RuntimeCall::NextKey(vm) => {
+            executor::runtime_call::RuntimeCall::NextKey(_vm) => {
                 unreachable!()
             }
             executor::runtime_call::RuntimeCall::ClosestDescendantMerkleValue(vm) => {
