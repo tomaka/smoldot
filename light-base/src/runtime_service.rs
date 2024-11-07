@@ -1328,6 +1328,15 @@ async fn run_background<TPlat: PlatformRef>(
                     finalized_block_runtime_known = ?subscription.finalized_block_runtime.is_some()
                 );
 
+                log!(
+                    &background.platform,
+                    Info,
+                    &background.log_target,
+                    "sub all",
+                    finalized_block_scale_encoded_header = ?subscription.finalized_block_scale_encoded_header,
+                    non_finalized_blocks_ancestry_order = ?subscription.non_finalized_blocks_ancestry_order,
+                );
+
                 // Update the state of `Background` with what we just grabbed.
                 //
                 // Note that the content of `Background` is reset unconditionally.
@@ -1685,7 +1694,7 @@ async fn run_background<TPlat: PlatformRef>(
                 // The sync service subscription has been or must be reset.
                 log!(
                     &background.platform,
-                    Trace,
+                    Info,
                     &background.log_target,
                     "sync-subscription-reset"
                 );
@@ -2287,6 +2296,14 @@ async fn run_background<TPlat: PlatformRef>(
             WakeUpReason::Notification(sync_service::Notification::Block(new_block)) => {
                 // Sync service has reported a new block.
 
+                log!(
+                    &background.platform,
+                    Info,
+                    &background.log_target,
+                    "new block",
+                    ?new_block,
+                );
+
                 let same_runtime_as_parent = same_runtime_as_parent(
                     &new_block.scale_encoded_header,
                     background.sync_service.block_number_bytes(),
@@ -2386,7 +2403,7 @@ async fn run_background<TPlat: PlatformRef>(
             WakeUpReason::Notification(sync_service::Notification::Finalized {
                 hash,
                 best_block_hash_if_changed,
-                ..
+                pruned_blocks,
             }) => {
                 // Sync service has reported a finalized block.
 
@@ -2401,6 +2418,15 @@ async fn run_background<TPlat: PlatformRef>(
                     } else {
                         Cow::Borrowed("<unchanged>")
                     }
+                );
+                log!(
+                    &background.platform,
+                    Info,
+                    &background.log_target,
+                    "finalized",
+                    ?hash,
+                    ?best_block_hash_if_changed,
+                    ?pruned_blocks
                 );
 
                 if let Some(best_block_hash) = best_block_hash_if_changed {
@@ -2451,6 +2477,13 @@ async fn run_background<TPlat: PlatformRef>(
 
             WakeUpReason::Notification(sync_service::Notification::BestBlockChanged { hash }) => {
                 // Sync service has reported a change in the best block.
+                log!(
+                    &background.platform,
+                    Info,
+                    &background.log_target,
+                    "best block changed",
+                    ?hash
+                );
 
                 log!(
                     &background.platform,

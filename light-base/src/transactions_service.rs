@@ -486,6 +486,15 @@ async fn background_task<TPlat: PlatformRef>(
             }
         };
 
+        log!(
+            &worker.platform,
+            Info,
+            &config.log_target,
+            "sub all",
+            finalized_block_scale_encoded_header = ?subscribe_all.finalized_block_scale_encoded_header,
+            non_finalized_blocks_ancestry_order = ?subscribe_all.non_finalized_blocks_ancestry_order,
+        );
+
         let initial_finalized_block_hash = header::hash_from_scale_encoded_header(
             &subscribe_all.finalized_block_scale_encoded_header,
         );
@@ -829,6 +838,14 @@ async fn background_task<TPlat: PlatformRef>(
                 WakeUpReason::Notification(Some(runtime_service::Notification::Block(
                     new_block,
                 ))) => {
+                    log!(
+                        &worker.platform,
+                        Info,
+                        &config.log_target,
+                        "new block",
+                        new_block = ?new_block
+                    );
+
                     let hash =
                         header::hash_from_scale_encoded_header(&new_block.scale_encoded_header);
                     worker.pending_transactions.add_block(
@@ -847,8 +864,18 @@ async fn background_task<TPlat: PlatformRef>(
                 WakeUpReason::Notification(Some(runtime_service::Notification::Finalized {
                     hash,
                     best_block_hash_if_changed,
-                    ..
+                    pruned_blocks,
                 })) => {
+                    log!(
+                        &worker.platform,
+                        Info,
+                        &config.log_target,
+                        "new finalized",
+                        ?hash,
+                        ?best_block_hash_if_changed,
+                        ?pruned_blocks,
+                    );
+
                     if let Some(best_block_hash_if_changed) = best_block_hash_if_changed {
                         worker.set_best_block(&config.log_target, &best_block_hash_if_changed);
                     }
@@ -864,9 +891,24 @@ async fn background_task<TPlat: PlatformRef>(
                 WakeUpReason::Notification(Some(
                     runtime_service::Notification::BestBlockChanged { hash },
                 )) => {
+                    log!(
+                        &worker.platform,
+                        Info,
+                        &config.log_target,
+                        "best block changed",
+                        ?hash,
+                    );
                     worker.set_best_block(&config.log_target, &hash);
                 }
-                WakeUpReason::Notification(None) => continue 'channels_rebuild,
+                WakeUpReason::Notification(None) => {
+                    log!(
+                        &worker.platform,
+                        Info,
+                        &config.log_target,
+                        "channel rebuild"
+                    );
+                    continue 'channels_rebuild
+                },
 
                 WakeUpReason::BlockDownloadFinished(block_hash, mut block_body) => {
                     // A block body download has finished, successfully or not.
