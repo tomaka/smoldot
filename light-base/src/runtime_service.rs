@@ -3063,6 +3063,18 @@ async fn runtime_call_single_attempt<TPlat: PlatformRef>(
     SingleRuntimeCallTiming,
     Result<Vec<u8>, SingleRuntimeCallAttemptError>,
 ) {
+    if function_name == "DryRunApi_dry_run_call" {
+        log!(platform, Info, "debug", "call proof", ?call_proof);
+        log!(platform, Info, "debug", "params", ?parameters_vectored);
+        log!(
+            platform,
+            Info,
+            "debug",
+            "block_state_trie_root_hash",
+            ?block_state_trie_root_hash
+        );
+    }
+
     // Try to decode the proof. Succeed just means that the proof has the correct
     // encoding, and doesn't guarantee that the proof has all the necessary
     // entries.
@@ -3189,23 +3201,37 @@ async fn runtime_call_single_attempt<TPlat: PlatformRef>(
             key.extend_from_slice(child_trie.as_ref());
             match call_proof.storage_value(block_state_trie_root_hash, &key) {
                 Err(_) => {
+                    log!(
+                        platform,
+                        Info,
+                        "debug",
+                        "trie root storage value failed",
+                        ?key
+                    );
                     return (
                         timing,
                         Err(SingleRuntimeCallAttemptError::Inaccessible(
                             RuntimeCallInaccessibleError::MissingProofEntry,
                         )),
-                    )
+                    );
                 }
                 Ok(None) => None,
                 Ok(Some((value, _))) => match <&[u8; 32]>::try_from(value) {
                     Ok(hash) => Some(hash),
                     Err(_) => {
+                        log!(
+                            platform,
+                            Info,
+                            "debug",
+                            "trie root storage value failed bad hash",
+                            ?key
+                        );
                         return (
                             timing,
                             Err(SingleRuntimeCallAttemptError::Inaccessible(
                                 RuntimeCallInaccessibleError::MissingProofEntry,
                             )),
-                        )
+                        );
                     }
                 },
             }
@@ -3221,6 +3247,7 @@ async fn runtime_call_single_attempt<TPlat: PlatformRef>(
                     Ok(None)
                 };
                 let Ok(storage_value) = storage_value else {
+                    log!(platform, Info, "debug", "storage value failed", ?trie_root, key = ?get.key().as_ref());
                     return (
                         timing,
                         Err(SingleRuntimeCallAttemptError::Inaccessible(
@@ -3242,6 +3269,7 @@ async fn runtime_call_single_attempt<TPlat: PlatformRef>(
                     Ok(None)
                 };
                 let Ok(merkle_value) = merkle_value else {
+                    log!(platform, Info, "debug", "cdmv failed", ?trie_root, key = ?mv.key().collect::<Vec<_>>());
                     return (
                         timing,
                         Err(SingleRuntimeCallAttemptError::Inaccessible(
@@ -3269,6 +3297,7 @@ async fn runtime_call_single_attempt<TPlat: PlatformRef>(
                     Ok(None)
                 };
                 let Ok(next_key) = next_key else {
+                    log!(platform, Info, "debug", "next key failed", ?trie_root, key = ?nk.key().collect::<Vec<_>>(), or_equal = ?nk.or_equal(), prefix = ?nk.prefix().collect::<Vec<_>>(), branches = ?nk.branch_nodes());
                     return (
                         timing,
                         Err(SingleRuntimeCallAttemptError::Inaccessible(
